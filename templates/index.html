@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservoir History Matching Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e293b;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            border-bottom: 2px solid #8b5cf6;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-size: 1.8rem;
+            color: #8b5cf6;
+        }
+        .header .status {
+            padding: 8px 16px;
+            background-color: #065f46;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #6ee7b7;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 30px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        .card {
+            background-color: #334155;
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid #475569;
+        }
+        .card h2 {
+            color: #8b5cf6;
+            margin-bottom: 16px;
+            font-size: 1.2rem;
+        }
+        .full-width { grid-column: 1 / -1; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 4px;
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #475569;
+            border-radius: 6px;
+            background-color: #1e293b;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+        }
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.85; }
+        .btn-primary { background-color: #8b5cf6; color: white; }
+        .btn-secondary { background-color: #475569; color: white; }
+        .btn-group { display: flex; gap: 10px; margin-top: 16px; }
+        #result, #forecast-result {
+            margin-top: 16px;
+            padding: 14px;
+            background-color: #1e293b;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            display: none;
+            border: 1px solid #475569;
+        }
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #475569;
+        }
+        .metric-value { color: #8b5cf6; font-weight: 600; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .chart-container { position: relative; height: 300px; }
+        canvas { max-width: 100%; }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+            font-size: 0.85rem;
+            border-top: 1px solid #475569;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Reservoir History Matching Dashboard</h1>
+        <div class="status" id="statusBadge">Checking...</div>
+    </div>
+
+    <div class="container">
+        <div class="grid">
+            <div class="card">
+                <h2>Production History Prediction</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Porosity</label>
+                        <input type="number" id="porosity" value="0.20" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Permeability (mD)</label>
+                        <input type="number" id="permeability" value="500" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Initial Pressure (psi)</label>
+                        <input type="number" id="initPressure" value="3500" step="100">
+                    </div>
+                    <div class="form-group">
+                        <label>Water Saturation</label>
+                        <input type="number" id="waterSat" value="0.30" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Net Pay Thickness (ft)</label>
+                        <input type="number" id="netPay" value="100" step="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Pressure (psi)</label>
+                        <input type="number" id="pressure" value="3000" step="100">
+                    </div>
+                    <div class="form-group">
+                        <label>Water Injection (bwpd)</label>
+                        <input type="number" id="injection" value="100" step="10">
+                    </div>
+                    <div class="form-group">
+                        <label>Timestep</label>
+                        <input type="number" id="timestep" value="0" step="1" min="0">
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="runPrediction()">Predict Production</button>
+                </div>
+                <div id="result"></div>
+            </div>
+
+            <div class="card">
+                <h2>Model Information</h2>
+                <div id="modelInfo">Loading...</div>
+            </div>
+
+            <div class="card full-width">
+                <h2>Simulated Production Curves</h2>
+                <div class="chart-container">
+                    <canvas id="productionChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card full-width">
+                <h2>Forecast</h2>
+                <p style="color: #94a3b8; margin-bottom: 12px; font-size: 0.9rem;">
+                    Click below to generate a 20-step production forecast from current conditions.
+                </p>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="runForecast()">Generate Forecast</button>
+                </div>
+                <div id="forecast-result"></div>
+                <div class="chart-container" style="margin-top: 16px;">
+                    <canvas id="forecastChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Elaborado por Ing. Kelvin Cabrera
+    </div>
+
+    <script>
+        let prodChart = null;
+        let foreChart = null;
+
+        async function checkHealth() {
+            try {
+                const res = await fetch('/api/health');
+                const data = await res.json();
+                const badge = document.getElementById('statusBadge');
+                if (data.status === 'healthy') {
+                    badge.textContent = 'System Healthy';
+                    badge.style.backgroundColor = '#065f46';
+                    badge.style.color = '#6ee7b7';
+                } else {
+                    badge.textContent = 'System Degraded';
+                    badge.style.backgroundColor = '#7f1d1d';
+                    badge.style.color = '#fca5a5';
+                }
+            } catch (e) {
+                document.getElementById('statusBadge').textContent = 'Offline';
+                document.getElementById('statusBadge').style.backgroundColor = '#7f1d1d';
+            }
+        }
+
+        async function loadModels() {
+            try {
+                const res = await fetch('/api/models');
+                const data = await res.json();
+                let html = '';
+                if (data.history_matcher) {
+                    const hm = data.history_matcher;
+                    html += '<h3 style="color:#8b5cf6;margin-bottom:8px;">History Matcher</h3>';
+                    html += `<div class="metric-row"><span>Type</span><span class="metric-value">${hm.type}</span></div>`;
+                    for (const [split, m] of Object.entries(hm.metrics)) {
+                        html += `<div class="metric-row"><span>${split} R2</span><span class="metric-value">${m.r2.toFixed(4)}</span></div>`;
+                        html += `<div class="metric-row"><span>${split} MAE</span><span class="metric-value">${m.mae.toFixed(4)}</span></div>`;
+                    }
+                }
+                if (data.production_forecaster) {
+                    const pf = data.production_forecaster;
+                    html += '<h3 style="color:#8b5cf6;margin:16px 0 8px;">Production Forecaster</h3>';
+                    html += `<div class="metric-row"><span>Lookback</span><span class="metric-value">${pf.lookback}</span></div>`;
+                    for (const [split, m] of Object.entries(pf.metrics)) {
+                        html += `<div class="metric-row"><span>${split} R2</span><span class="metric-value">${m.r2.toFixed(4)}</span></div>`;
+                        html += `<div class="metric-row"><span>${split} MAE</span><span class="metric-value">${m.mae.toFixed(4)}</span></div>`;
+                    }
+                }
+                document.getElementById('modelInfo').innerHTML = html || 'No models loaded';
+            } catch (e) {
+                document.getElementById('modelInfo').innerHTML = 'Error loading model info';
+            }
+        }
+
+        async function runPrediction() {
+            const features = [
+                parseFloat(document.getElementById('porosity').value),
+                parseFloat(document.getElementById('permeability').value),
+                parseFloat(document.getElementById('initPressure').value),
+                parseFloat(document.getElementById('waterSat').value),
+                parseFloat(document.getElementById('netPay').value),
+                parseFloat(document.getElementById('pressure').value),
+                parseFloat(document.getElementById('injection').value),
+                parseFloat(document.getElementById('timestep').value),
+            ];
+            try {
+                const res = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ features })
+                });
+                const data = await res.json();
+                const div = document.getElementById('result');
+                div.style.display = 'block';
+                if (data.error) {
+                    div.innerHTML = 'Error: ' + data.error;
+                    return;
+                }
+                const p = data.prediction;
+                div.innerHTML =
+                    'Oil Rate: ' + p.oil_rate_bopd + ' bopd\n' +
+                    'Water Rate: ' + p.water_rate_bwpd + ' bwpd\n' +
+                    'Gas Rate: ' + p.gas_rate_mscfd + ' mscfd';
+            } catch (e) {
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('result').innerHTML = 'Request failed: ' + e.message;
+            }
+        }
+
+        async function runForecast() {
+            const recent = [];
+            for (let i = 0; i < 10; i++) {
+                recent.push({
+                    oil_rate_bopd: 100 * Math.exp(-0.015 * i),
+                    water_rate_bwpd: 20 + i * 2,
+                    gas_rate_mscfd: 500 * Math.exp(-0.015 * i),
+                    pressure_psi: 3500 - 50 * i,
+                });
+            }
+            try {
+                const res = await fetch('/api/forecast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ recent_data: recent, n_steps: 20 })
+                });
+                const data = await res.json();
+                const div = document.getElementById('forecast-result');
+                div.style.display = 'block';
+                if (data.error) {
+                    div.innerHTML = 'Error: ' + data.error;
+                    return;
+                }
+                updateForecastChart(data.forecast);
+            } catch (e) {
+                document.getElementById('forecast-result').style.display = 'block';
+                document.getElementById('forecast-result').innerHTML = 'Request failed: ' + e.message;
+            }
+        }
+
+        function updateForecastChart(forecast) {
+            const ctx = document.getElementById('forecastChart').getContext('2d');
+            if (foreChart) foreChart.destroy();
+            const labels = forecast.map((_, i) => 'T+' + (i + 1));
+            foreChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Oil Rate (bopd)', data: forecast.map(f => f.target_oil), borderColor: '#8b5cf6', borderWidth: 2, fill: false, tension: 0.3 },
+                        { label: 'Water Rate (bwpd)', data: forecast.map(f => f.target_water), borderColor: '#06b6d4', borderWidth: 2, fill: false, tension: 0.3 },
+                        { label: 'Gas Rate (mscfd)', data: forecast.map(f => f.target_gas), borderColor: '#f59e0b', borderWidth: 2, fill: false, tension: 0.3 },
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#e2e8f0' } } },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' }, grid: { color: '#475569' } },
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: '#475569' } }
+                    }
+                }
+            });
+        }
+
+        function loadProductionChart() {
+            const ctx = document.getElementById('productionChart').getContext('2d');
+            const n = 100;
+            const labels = Array.from({length: n}, (_, i) => i);
+            const oil = labels.map(t => 100 * Math.exp(-0.015 * t));
+            const water = labels.map(t => 10 + t * 0.8);
+            const gas = labels.map(t => 500 * Math.exp(-0.015 * t));
+            prodChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Oil Rate (bopd)', data: oil, borderColor: '#8b5cf6', borderWidth: 2, fill: false, tension: 0.3, pointRadius: 0 },
+                        { label: 'Water Rate (bwpd)', data: water, borderColor: '#06b6d4', borderWidth: 2, fill: false, tension: 0.3, pointRadius: 0 },
+                        { label: 'Gas Rate (mscfd)', data: gas, borderColor: '#f59e0b', borderWidth: 2, fill: false, tension: 0.3, pointRadius: 0 },
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#e2e8f0' } } },
+                    scales: {
+                        x: { title: { display: true, text: 'Timestep', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: '#475569' } },
+                        y: { title: { display: true, text: 'Rate', color: '#94a3b8' }, ticks: { color: '#94a3b8' }, grid: { color: '#475569' } }
+                    }
+                }
+            });
+        }
+
+        window.onload = function() {
+            checkHealth();
+            loadModels();
+            loadProductionChart();
+        };
+    </script>
+</body>
+</html>
