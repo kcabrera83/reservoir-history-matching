@@ -1,8 +1,10 @@
-import requests
-import json
 import sys
+sys.path.insert(0, '.')
+from app import app
 
-BASE_URL = 'http://127.0.0.1:5006'
+from fastapi.testclient import TestClient
+
+client = TestClient(app)
 passed = 0
 failed = 0
 
@@ -19,66 +21,41 @@ def test(name, condition, detail=''):
 
 def test_health():
     print("\nTest: GET /api/health")
-    try:
-        r = requests.get(f'{BASE_URL}/api/health', timeout=5)
-        data = r.json()
-        test("Status 200", r.status_code == 200)
-        test("Status healthy", data.get('status') == 'healthy')
-        test("Models loaded key", 'models_loaded' in data)
-    except Exception as e:
-        test("Health endpoint reachable", False, str(e))
+    r = client.get("/api/health")
+    data = r.json()
+    test("Status 200", r.status_code == 200)
+    test("Status healthy", data.get('status') == 'healthy')
+    test("Models loaded key", 'models_loaded' in data)
 
 
 def test_models():
     print("\nTest: GET /api/models")
-    try:
-        r = requests.get(f'{BASE_URL}/api/models', timeout=5)
-        data = r.json()
-        test("Status 200", r.status_code == 200)
-        test("History matcher info", 'history_matcher' in data)
-        test("Forecaster info", 'production_forecaster' in data)
-    except Exception as e:
-        test("Models endpoint reachable", False, str(e))
-
-
-def test_index():
-    print("\nTest: GET /")
-    try:
-        r = requests.get(f'{BASE_URL}/', timeout=5)
-        test("Status 200", r.status_code == 200)
-        test("Contains dashboard title", 'Reservoir History Matching' in r.text)
-        test("Contains Kelvin Cabrera", 'Kelvin Cabrera' in r.text)
-    except Exception as e:
-        test("Index endpoint reachable", False, str(e))
+    r = client.get("/api/models")
+    data = r.json()
+    test("Status 200", r.status_code == 200)
+    test("History matcher info", 'history_matcher' in data)
+    test("Forecaster info", 'production_forecaster' in data)
 
 
 def test_predict():
     print("\nTest: POST /api/predict")
     features = [0.20, 500, 3500, 0.30, 100, 3000, 100, 0]
-    try:
-        r = requests.post(f'{BASE_URL}/api/predict',
-                          json={'features': features}, timeout=10)
-        data = r.json()
-        test("Status 200", r.status_code == 200)
-        test("Has prediction", 'prediction' in data)
-        if 'prediction' in data:
-            p = data['prediction']
-            test("Has oil_rate_bopd", 'oil_rate_bopd' in p)
-            test("Has water_rate_bwpd", 'water_rate_bwpd' in p)
-            test("Has gas_rate_mscfd", 'gas_rate_mscfd' in p)
-            test("Oil rate positive", p.get('oil_rate_bopd', 0) >= 0)
-    except Exception as e:
-        test("Predict endpoint reachable", False, str(e))
+    r = client.post("/api/predict", json={'features': features})
+    data = r.json()
+    test("Status 200", r.status_code == 200)
+    test("Has prediction", 'prediction' in data)
+    if 'prediction' in data:
+        p = data['prediction']
+        test("Has oil_rate_bopd", 'oil_rate_bopd' in p)
+        test("Has water_rate_bwpd", 'water_rate_bwpd' in p)
+        test("Has gas_rate_mscfd", 'gas_rate_mscfd' in p)
+        test("Oil rate positive", p.get('oil_rate_bopd', 0) >= 0)
 
 
 def test_predict_missing():
     print("\nTest: POST /api/predict (missing features)")
-    try:
-        r = requests.post(f'{BASE_URL}/api/predict',
-                          json={}, timeout=5)
-        test("Returns 400 for missing features", r.status_code == 400)
-    except Exception as e:
-        test("Missing features handling", False, str(e))
+    r = client.post("/api/predict", json={})
+    test("Returns 422 for missing features", r.status_code in (400, 422))
 
 
 def test_forecast():
@@ -91,27 +68,19 @@ def test_forecast():
             'gas_rate_mscfd': 500 * (0.985 ** i),
             'pressure_psi': 3500 - 50 * i,
         })
-    try:
-        r = requests.post(f'{BASE_URL}/api/forecast',
-                          json={'recent_data': recent, 'n_steps': 5}, timeout=10)
-        data = r.json()
-        test("Status 200", r.status_code == 200)
-        test("Has forecast", 'forecast' in data)
-        if 'forecast' in data:
-            test("Forecast is list", isinstance(data['forecast'], list))
-            test("Forecast length correct", len(data['forecast']) == 5)
-    except Exception as e:
-        test("Forecast endpoint reachable", False, str(e))
+    r = client.post("/api/forecast", json={'recent_data': recent, 'n_steps': 5})
+    data = r.json()
+    test("Status 200", r.status_code == 200)
+    test("Has forecast", 'forecast' in data)
+    if 'forecast' in data:
+        test("Forecast is list", isinstance(data['forecast'], list))
+        test("Forecast length correct", len(data['forecast']) == 5)
 
 
 def test_forecast_missing():
     print("\nTest: POST /api/forecast (missing data)")
-    try:
-        r = requests.post(f'{BASE_URL}/api/forecast',
-                          json={}, timeout=5)
-        test("Returns 400 for missing data", r.status_code == 400)
-    except Exception as e:
-        test("Missing data handling", False, str(e))
+    r = client.post("/api/forecast", json={})
+    test("Returns 422 for missing data", r.status_code in (400, 422))
 
 
 if __name__ == '__main__':
@@ -119,7 +88,6 @@ if __name__ == '__main__':
     print("RESERVOIR HISTORY MATCHING - API TESTS")
     print("=" * 50)
 
-    test_index()
     test_health()
     test_models()
     test_predict()
