@@ -114,13 +114,13 @@ def forecast():
 def api_docs():
     return jsonify({
         "openapi": "3.0.0",
-        "info": {"title": "Reservoir History Matching - Historial de Reservorios", "version": "1.0.0"},
+        "info": {"title": "Reservoir History Matching - Reservoir History", "version": "1.0.0"},
         "paths": {
-            "/": {"get": {"summary": "Dashboard principal"}},
-            "/api/health": {"get": {"summary": "Health check del servicio"}},
-            "/api/models": {"get": {"summary": "Informacion de los modelos entrenados"}},
-            "/api/predict": {"post": {"summary": "Predecir produccion de reservorio (oil, water, gas rates)"}},
-            "/api/forecast": {"post": {"summary": "Pronostico de produccion futura"}},
+            "/": {"get": {"summary": "Main dashboard"}},
+            "/api/health": {"get": {"summary": "Service health check"}},
+            "/api/models": {"get": {"summary": "Information about trained models"}},
+            "/api/predict": {"post": {"summary": "Predict reservoir production (oil, water, gas rates)"}},
+            "/api/forecast": {"post": {"summary": "Future production forecast"}},
         }
     })
 
