@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 
 from reservoir_history_matching.models.history_matcher import HistoryMatcher
@@ -30,6 +31,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+Instrumentator().instrument(app).expose(app)
 
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "outputs", "models")
 models: dict[str, Any] = {}
@@ -131,3 +134,4 @@ async def forecast(request: ForecastRequest):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5006)
+
