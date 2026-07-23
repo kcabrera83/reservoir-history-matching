@@ -1,12 +1,30 @@
 # Reservoir History Matching
 
-ML-based reservoir production history matching and forecasting system.
+ML-based reservoir production history matching and forecasting system using Gaussian Processes and PyTorch.
+
+## Tech Stack
+
+| Component | Technology |
+|-----------|-----------|
+| GP Modeling | **GPyTorch** - Gaussian Process regression |
+| Deep Learning | **PyTorch** - Neural network models |
+| Data Processing | pandas, numpy, joblib |
+| Web Server | **FastAPI** + uvicorn |
+| Monitoring | prometheus-fastapi-instrumentator |
+| Validation | pydantic v2 |
+| Visualization | matplotlib, seaborn |
+
+### Key Libraries
+- GPyTorch - Scalable Gaussian Process modeling
+- PyTorch - Deep learning framework
+- FastAPI - Modern async web framework
+- pandas / numpy - Data processing
 
 ## Overview
 
 This project provides machine learning models for:
-- **History Matching**: Predicting oil, water, and gas production rates from reservoir properties using GradientBoosting and RandomForest regressors.
-- **Production Forecasting**: Forecasting future production using historical production data with GradientBoosting as an LSTM alternative.
+- **History Matching**: Gaussian Process regression for predicting oil, water, and gas production rates from reservoir properties
+- **Production Forecasting**: PyTorch neural networks for forecasting future production using historical data
 
 ## Project Structure
 
@@ -92,4 +110,6 @@ python test_api.py
 
 Access the dashboard at `http://localhost:5006` after starting the server.
 
-## Elaborado por Ing. Kelvin Cabrera
+---
+
+Elaborado por Ing. Kelvin Cabrera
