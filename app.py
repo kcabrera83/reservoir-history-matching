@@ -110,5 +110,20 @@ def forecast():
         return jsonify({'error': str(e)}), 400
 
 
+@app.route('/api/docs')
+def api_docs():
+    return jsonify({
+        "openapi": "3.0.0",
+        "info": {"title": "Reservoir History Matching - Historial de Reservorios", "version": "1.0.0"},
+        "paths": {
+            "/": {"get": {"summary": "Dashboard principal"}},
+            "/api/health": {"get": {"summary": "Health check del servicio"}},
+            "/api/models": {"get": {"summary": "Informacion de los modelos entrenados"}},
+            "/api/predict": {"post": {"summary": "Predecir produccion de reservorio (oil, water, gas rates)"}},
+            "/api/forecast": {"post": {"summary": "Pronostico de produccion futura"}},
+        }
+    })
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5006, debug=True)
