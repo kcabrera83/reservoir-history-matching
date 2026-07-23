@@ -40,15 +40,18 @@ models: dict[str, Any] = {}
 
 @app.on_event("startup")
 async def load_models():
-    matcher_path = os.path.join(MODEL_DIR, "history_matcher.pkl")
-    forecaster_path = os.path.join(MODEL_DIR, "production_forecaster.pkl")
-    preprocessor_path = os.path.join(MODEL_DIR, "preprocessor.pkl")
-    if os.path.exists(matcher_path):
-        models["matcher"] = HistoryMatcher.load(matcher_path)
-    if os.path.exists(forecaster_path):
-        models["forecaster"] = ProductionForecaster.load(forecaster_path)
-    if os.path.exists(preprocessor_path):
-        models["preprocessor"] = ReservoirPreprocessor.load(preprocessor_path)
+    try:
+        matcher_path = os.path.join(MODEL_DIR, "history_matcher.pkl")
+        forecaster_path = os.path.join(MODEL_DIR, "production_forecaster.pkl")
+        preprocessor_path = os.path.join(MODEL_DIR, "preprocessor.pkl")
+        if os.path.exists(matcher_path):
+            models["matcher"] = HistoryMatcher.load(matcher_path)
+        if os.path.exists(forecaster_path):
+            models["forecaster"] = ProductionForecaster.load(forecaster_path)
+        if os.path.exists(preprocessor_path):
+            models["preprocessor"] = ReservoirPreprocessor.load(preprocessor_path)
+    except Exception as e:
+        print(f"  Error loading models: {e}")
 
 
 class PredictRequest(BaseModel):

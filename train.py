@@ -2,6 +2,8 @@ import os
 import sys
 import pandas as pd
 import numpy as np
+import torch
+import gpytorch
 from sklearn.model_selection import train_test_split
 
 from reservoir_history_matching.data_generator import ReservoirDataGenerator
@@ -15,7 +17,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 def main():
     print("=" * 60)
-    print("RESERVOIR HISTORY MATCHING - MODEL TRAINING")
+    print("RESERVOIR HISTORY MATCHING - GPyTorch Gaussian Process")
     print("=" * 60)
 
     print("\n[1/5] Generating synthetic reservoir data...")
@@ -30,12 +32,12 @@ def main():
     )
     print(f"  Train: {len(X_hist_train)}, Test: {len(X_hist_test)}")
 
-    print("\n[3/5] Training HistoryMatcher (GradientBoosting)...")
+    print("\n[3/5] Training HistoryMatcher (GPyTorch Gaussian Process)...")
     preprocessor = ReservoirPreprocessor()
     X_hist_train_scaled = preprocessor.fit_transform(X_hist_train)
     X_hist_test_scaled = preprocessor.transform(X_hist_test)
 
-    matcher = HistoryMatcher(model_type='gradient_boosting')
+    matcher = HistoryMatcher(model_type='gp')
     matcher.train(X_hist_train_scaled, y_hist_train, X_hist_test_scaled, y_hist_test)
     matcher.save(os.path.join(OUTPUT_DIR, 'history_matcher.pkl'))
     preprocessor.save(os.path.join(OUTPUT_DIR, 'preprocessor.pkl'))
@@ -48,7 +50,7 @@ def main():
     )
     print(f"  Train: {len(X_fore_train)}, Test: {len(X_fore_test)}")
 
-    print("\n[5/5] Training ProductionForecaster...")
+    print("\n[5/5] Training ProductionForecaster (GPyTorch Gaussian Process)...")
     forecaster = ProductionForecaster(lookback=10)
     forecaster.train(X_fore_train, y_fore_train, X_fore_test, y_fore_test)
     forecaster.save(os.path.join(OUTPUT_DIR, 'production_forecaster.pkl'))
