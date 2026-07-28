@@ -3,7 +3,7 @@ import pandas as pd
 
 
 class ReservoirDataGenerator:
-    def __init__(self, n_wells=50, n_timesteps=100, seed=42):
+    def __init__(self, n_wells=50, n_timesteps=100, seed=2024):
         self.n_wells = n_wells
         self.n_timesteps = n_timesteps
         self.seed = seed

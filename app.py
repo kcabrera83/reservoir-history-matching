@@ -1,11 +1,9 @@
-"""FastAPI web server for reservoir history matching."""
-
 import os
 import sys
 from pathlib import Path
 from typing import Any
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+import sys; sys.path.append(str(Path(__file__).resolve().parent))
 
 import numpy as np
 import pandas as pd
@@ -21,7 +19,7 @@ from reservoir_history_matching.utils.preprocessor import ReservoirPreprocessor
 app = FastAPI(
     title="Reservoir History Matching",
     description="Reservoir production matching and future production forecasting",
-    version="1.0.0",
+    version="0.1",
 )
 
 app.add_middleware(

@@ -16,19 +16,17 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 def main():
-    print("=" * 60)
     print("RESERVOIR HISTORY MATCHING - GPyTorch Gaussian Process")
-    print("=" * 60)
 
     print("\n[1/5] Generating synthetic reservoir data...")
-    generator = ReservoirDataGenerator(n_wells=50, n_timesteps=100, seed=42)
+    generator = ReservoirDataGenerator(n_wells=50, n_timesteps=100, seed=2024)
     well_props, production = generator.generate_dataset()
     print(f"  Generated {len(well_props)} wells, {len(production)} production records")
 
     print("\n[2/5] Preparing history matching dataset...")
     X_hist, y_hist = generator.generate_matching_dataset(production)
     X_hist_train, X_hist_test, y_hist_train, y_hist_test = train_test_split(
-        X_hist, y_hist, test_size=0.2, random_state=42
+        X_hist, y_hist, test_size=0.2, random_state=2024
     )
     print(f"  Train: {len(X_hist_train)}, Test: {len(X_hist_test)}")
 
@@ -46,7 +44,7 @@ def main():
     print("\n[4/5] Preparing forecast dataset...")
     X_fore, y_fore = generator.generate_forecast_dataset(production, lookback=10)
     X_fore_train, X_fore_test, y_fore_train, y_fore_test = train_test_split(
-        X_fore, y_fore, test_size=0.2, random_state=42
+        X_fore, y_fore, test_size=0.2, random_state=2024
     )
     print(f"  Train: {len(X_fore_train)}, Test: {len(X_fore_test)}")
 
@@ -59,7 +57,6 @@ def main():
     print("\n" + "=" * 60)
     print("TRAINING COMPLETE")
     print(f"Models saved in: {OUTPUT_DIR}")
-    print("=" * 60)
 
     print("\nHistory Matcher Metrics:")
     for split, m in matcher.metrics.items():

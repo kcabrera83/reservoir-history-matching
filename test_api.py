@@ -84,9 +84,7 @@ def test_forecast_missing():
 
 
 if __name__ == '__main__':
-    print("=" * 50)
     print("RESERVOIR HISTORY MATCHING - API TESTS")
-    print("=" * 50)
 
     test_health()
     test_models()
@@ -97,5 +95,4 @@ if __name__ == '__main__':
 
     print("\n" + "=" * 50)
     print(f"RESULTS: {passed} passed, {failed} failed")
-    print("=" * 50)
     sys.exit(0 if failed == 0 else 1)
