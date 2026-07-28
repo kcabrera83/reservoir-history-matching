@@ -31,3 +31,6 @@ ENV/
 outputs/models/*.pkl
 flask_session/
 *.log
+
+# Streamlit Cloud model files
+!outputs/models/*.pkl
