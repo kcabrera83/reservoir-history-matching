@@ -34,3 +34,6 @@ flask_session/
 
 # Streamlit Cloud model files
 !outputs/models/*.pkl
+
+# Security & MLflow
+mlflow.db
