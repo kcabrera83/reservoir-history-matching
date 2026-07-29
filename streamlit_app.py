@@ -1,39 +1,63 @@
 import streamlit as st
-import sys
+import joblib, numpy as np, matplotlib.pyplot as plt
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent))
+import sys; sys.path.insert(0, str(Path(__file__).parent))
 
 st.set_page_config(page_title="Reservoir History Matching", layout="wide")
 st.title("Reservoir History Matching")
-st.markdown("Match reservoir history and forecast production.")
+st.markdown("History matching & production forecasting")
 
-import joblib, numpy as np
-d = Path(__file__).parent / 'outputs' / 'models'
-models = {'oil': joblib.load(d / 'oil_production_model.pkl'), 'water': joblib.load(d / 'water_production_model.pkl'), 'gas': joblib.load(d / 'gas_production_model.pkl')}
+@st.cache_resource
+def load_models():
+    base = Path(__file__).parent / 'outputs' / 'models'
+    return {'oil': joblib.load(base / 'oil_production_model.pkl'), 'gas': joblib.load(base / 'gas_production_model.pkl')}
 
-st.sidebar.header("Input Parameters")
-porosity = st.sidebar.slider('Porosity', 5, 35, 20)
-perm = st.sidebar.slider('Perm', 0, 1000, 500)
-thickness = st.sidebar.slider('Thickness', 10, 500, 255)
-pressure = st.sidebar.slider('Pressure', 1000, 10000, 5500)
-sw = st.sidebar.slider('Sw', 10, 90, 50)
-kv_kh = st.sidebar.slider('Kv Kh', 0, 1, 0)
-compress = st.sidebar.slider('Compress', 1, 100, 50)
-viscosity = st.sidebar.slider('Viscosity', 0, 100, 50)
-ff = st.sidebar.slider('Ff', 1, 3, 2)
-drainage = st.sidebar.slider('Drainage', 40, 2000, 1020)
+models = load_models()
 
-if st.sidebar.button("Run"):
-    try:
-        x = np.array([[porosity, perm, thickness, pressure, sw, kv_kh, compress, viscosity, ff, drainage]])
-        cols = st.columns(3)
-        for i, (k, m) in enumerate(models.items()):
-            X = m['scaler'].transform(x)
-            p = m['model'].predict(X)
-            if 'label_encoder' in m:
-                val = m['label_encoder'].inverse_transform(p)[0]
+def predict(name, x):
+    m = models[name]
+    if isinstance(m, dict):
+        X = m['scaler'].transform(x)
+        p = m['model'].predict(X)
+        if 'label_encoder' in m:
+            return m['label_encoder'].inverse_transform(p)[0]
+        return float(p[0])
+    return float(m.predict(x)[0])
+
+col1, col2 = st.columns([1, 2])
+with col1:
+    st.subheader('Parameters')
+    poro = st.slider('Poro', 5, 35, 20)
+    perm = st.slider('Perm', 0, 1000, 500)
+    thick = st.slider('Thick', 10, 500, 255)
+    pres = st.slider('Pres', 1000, 10000, 5500)
+    sw = st.slider('Sw', 10, 90, 50)
+    kv_kh = st.slider('Kv Kh', 0, 1, 0)
+    comp = st.slider('Comp', 1, 100, 50)
+    visc = st.slider('Visc', 0, 100, 50)
+    ff = st.slider('Ff', 1, 3, 2)
+    area = st.slider('Area', 40, 2000, 1020)
+    run = st.button('Run Prediction', use_container_width=True)
+
+with col2:
+    if run:
+        x = np.array([[poro, perm, thick, pres, sw, kv_kh, comp, visc, ff, area]])
+        results = {}
+        results['oil'] = predict('oil', x)
+        results['gas'] = predict('gas', x)
+        st.subheader('Results')
+        rcols = st.columns(len(results))
+        for i, (k, v) in enumerate(results.items()):
+            label = k.replace('_', ' ').title()
+            if isinstance(v, str):
+                rcols[i].metric(label, v)
             else:
-                val = f'{p[0]:.2f}'
-            cols[i].metric(k.title(), val)
-    except Exception as e:
-        st.error(str(e))
+                rcols[i].metric(label, f'{v:.2f}')
+        # Plot
+        fig, ax = plt.subplots()
+        names = [k.replace('_',' ').title() for k in results]
+        vals = [float(v) if isinstance(v, (int,float,str)) and str(v).replace('.','').replace('-','').isdigit() else 0 for v in results.values()]
+        if any(v != 0 for v in vals):
+            ax.bar(names, vals, color=['#0077B6','#00B4D8','#90E0EF'])
+            ax.set_ylabel('Value')
+            st.pyplot(fig)
