@@ -37,3 +37,6 @@ flask_session/
 
 # Security & MLflow
 mlflow.db
+
+# Docs build
+site/
